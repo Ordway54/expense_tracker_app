@@ -6,7 +6,7 @@ class Database:
     def __init__(self):
         """Initializes a Database object."""
 
-        self.conn = sq.Connection('transactions.db')
+        self.conn = sq.Connection(r'src\transactions.db')
         self.cur = self.conn.cursor()
 
         # ensure database connection is closed upon exit
@@ -61,6 +61,12 @@ class Database:
 
         query = f"SELECT * FROM {table_name}"
 
+        res = self.conn.execute(query)
+
+        return [item for item in res.fetchall()]
+
+    def query(self, query:str):
+        """Returns the results of the query."""
         res = self.conn.execute(query)
 
         return [item for item in res.fetchall()]

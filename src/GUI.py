@@ -1,6 +1,8 @@
 import tkinter
 from tkinter import ttk
+from tkinter import messagebox
 from Database import Database
+import sqlite3 as sq
 
 class GUI:
     """Represents the graphical user interface."""
@@ -18,7 +20,10 @@ class GUI:
 
         self._setup_ui()
 
-    
+        # display transactions at program start
+        self.update_treeview(self.database.query_all())
+
+
         self.root.mainloop()
 
     def _setup_ui(self):
@@ -38,6 +43,14 @@ class GUI:
 
         self.welcome_label.grid(column=0,row=0,columnspan=3)
 
+        self.filter_var = tkinter.StringVar()
+        categories = self._get_category_types()
+        self.filter_dropdown = ttk.OptionMenu(self.root,
+                                              self.filter_var,
+                                              *categories,
+                                              command=self.set_filter)
+        self.filter_dropdown.grid(column=0,row=2)
+
         self.add_trans_btn = ttk.Button(self.root,text="Add Transaction",
                                         width=20,style='my.TButton',
                                         command=self.add_transaction)
@@ -51,7 +64,16 @@ class GUI:
         self.clear_btn = ttk.Button(self.root,text="Clear Fields",width=20,
                                     style='my.TButton',
                                     command=self.clear_entry_fields)
-        self.clear_btn.grid(column=2,row=3,padx=GUI.PADDING,pady=GUI.PADDING)
+        self.clear_btn.grid(column=0,row=4,padx=GUI.PADDING,pady=GUI.PADDING)
+
+        self.clear_transaction_pane_btn = ttk.Button(self.root,
+                                                    text="Clear Transaction Pane",
+                                                    width=20,
+                                                    style='my.TButton',
+                                                    command=self._clear_treeview)
+        self.clear_transaction_pane_btn.grid(column=1,row=4,
+                                             padx=GUI.PADDING,
+                                             pady=GUI.PADDING)
 
         self.entry_field_frame = ttk.Labelframe(self.root,text="Entry Fields")
         self.entry_field_frame.grid(column=0,row=2,columnspan=4)
@@ -98,7 +120,7 @@ class GUI:
             if isinstance(child,ttk.Entry):
                 child.delete(0,tkinter.END)
     
-    def update_treeview(self):
+    def update_treeview(self, transactions: list[tuple]):
         """
         Updates the Treeview widget.
         
@@ -106,9 +128,27 @@ class GUI:
         records on the UI in a tabular format.
         """
 
-        for transaction in self.displayed_transactions:
+        self._clear_treeview()
+
+        for transaction in transactions:
             self.transaction_pane.insert(parent='',index="end",
                                          values=transaction)
+    
+    def _clear_treeview(self):
+        """Clears the contents of the Treeview widget.
+        
+        Clears the Treeview which is the widget that displays transaction
+        records on the UI in a tabular format.
+        """
+
+        for item in self.transaction_pane.get_children():
+            self.transaction_pane.delete(item)
+
+    def set_filter(self, value_selected: tuple):
+        value_selected = value_selected[0]
+        
+        query = f"SELECT * FROM transactions WHERE category = '{value_selected}'"
+        self.update_treeview(self.database.query(query))
 
     
     def add_transaction(self):
@@ -128,11 +168,20 @@ class GUI:
                 'category': category
             }
 
-            self.database.add_transaction(transaction)
+            try:
+                self.database.add_transaction(transaction)
+            except sq.IntegrityError:
+                messagebox.showerror(title='Duplicate record warning',
+                                     message=f"""
+                                    The following record was\
+                                    found to be a duplicate:\n{transaction}.""")
+                
             self.clear_entry_fields()
 
-            self.displayed_transactions = self.database.query_all()
-            self.update_treeview()
+            # self.displayed_transactions = self.database.query_all()
+            self.update_treeview(self.database.query_all())
+            # self.update_treeview()
+            self._update_filter_dropdown_options()
         else:
             print('missing value')
     
@@ -153,8 +202,12 @@ class GUI:
                 # remove transaction from database
                 transaction = self.make_transaction_dict(transaction)
                 self.database.remove_transaction(transaction)
+
+                self._update_filter_dropdown_options()
         else:
-            print('no selected transactions')
+            msg = ("""No transactions selected. Select at least one transaction to remove.""")
+            messagebox.showerror(title="No transactions selected",
+                                 message=msg)
     
     def make_transaction_dict(self, transaction_values) -> dict:
         """Returns a transaction dictionary."""
@@ -168,3 +221,19 @@ class GUI:
     
     def get_transaction_data(self):
         pass
+
+    def _get_category_types(self):
+        """Gets the unique category values in the database."""
+        query = "SELECT DISTINCT category FROM transactions ORDER BY category ASC"
+        
+        return self.database.query(query)
+    
+    def _update_filter_dropdown_options(self):
+        categories = self._get_category_types()
+
+        self.filter_dropdown.destroy()
+        self.filter_dropdown = ttk.OptionMenu(self.root,
+                                              self.filter_var,
+                                              categories[0],
+                                              *categories)
+        self.filter_dropdown.grid(column=0,row=2)
