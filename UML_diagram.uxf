@@ -1,0 +1,46 @@
+<diagram program="umletino" version="15.1"><zoom_level>10</zoom_level><element><id>UMLClass</id><coordinates><x>110</x><y>80</y><w>260</w><h>270</h></coordinates><panel_attributes>Database
+--
+Attributes:
+
++conn: sqlite3.Connection object
++cur: sqlite3.Connection.cursor object
+--
+Methods:
+
++add_transaction()
++remove_transaction()
++update_transaction()
++query()
+--
+Responsibilities:
+
+Manage all CRUD operations and queries</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>380</x><y>80</y><w>260</w><h>270</h></coordinates><panel_attributes>GUI
+--
+Attributes:
+
++root: tkinter.Tk()
++database: Database()
+--
+Methods:
+
++setup_ui() (called by __init__())
+-clear_fields()
+-capture_fields()
+--
+Responsibilities:
+
+Manage all CRUD operations and queries</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>250</x><y>370</y><w>260</w><h>270</h></coordinates><panel_attributes>Parser
+--
+Attributes:
+
+
+--
+Methods:
+
+--
+Responsibilities:
+
+Read CSV files as pandas DataFrames
+and pass to Database
+
+</panel_attributes><additional_attributes></additional_attributes></element></diagram>
